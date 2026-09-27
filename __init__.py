@@ -23,7 +23,6 @@ else:
         version="0.1.0",
         author="Healock",
         url="https://github.com/Healock/nekro_plugin_heartflow",
-        support_adapter=["onebot_v11"],
         allow_sleep=False,
     )
 

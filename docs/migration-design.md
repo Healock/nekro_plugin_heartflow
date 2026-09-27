@@ -2,6 +2,8 @@
 
 本文记录第一阶段只读调研后的实现约定。目标是保留 Heartflow 的核心体验，同时接受 NekroAgent 现有插件 API 的差异。
 
+当前分支已完成 `0.1.0` 的第一版实现：独立 HTTP judge、群消息回调、`FORCE_TRIGGER`、`DBChatMessage` 历史适配、内存状态、运行时提示注入和管理命令均已落地。本文继续记录尚未通过真实 Nekro 环境确认的边界。
+
 ## 1. 调研基线
 
 - AstrBot 上游：[`Astrbot_plugin_Heartflow`](https://github.com/advent259141/Astrbot_plugin_Heartflow)，调研提交为 `78eb5320ee04fd6fcdd9c4e4e99c9cb29b7e74fc`。
@@ -148,7 +150,7 @@ Heartflow 的判断已经承担“普通群消息是否主动回复”的职责�
 
 ## 9. 分阶段实施
 
-### Phase 1：可运行 MVP
+### Phase 1：可运行 MVP（代码已实现，待真实环境验收）
 
 - 插件入口、配置和独立 judge HTTP 客户端；
 - 群消息过滤、白名单、`is_tome` 跳过；

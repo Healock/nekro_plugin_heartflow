@@ -60,6 +60,7 @@ def test_state_transition_and_message_window() -> None:
     current = RawMessage("2", "乙", "当前消息", 2)
     window = merge_current_message(messages, current, 2)
     assert [message.content for message in window] == ["旧消息", "当前消息"]
+    assert merge_current_message(window, current, 2) == window
     assert render_history(window) == ["【群成员】甲：旧消息", "【群成员】乙：当前消息"]
 
 
@@ -116,6 +117,11 @@ class _FakeJudge:
         return '{"relevance": 9, "willingness": 8, "social": 7, "timing": 6, "continuity": 8}'
 
 
+class _AlwaysBadJudge:
+    async def complete(self, _system_prompt: str, _user_prompt: str, _timeout: float) -> str:
+        return "无效输出"
+
+
 @pytest.mark.asyncio
 async def test_judge_retries_invalid_output_and_returns_result() -> None:
     fake = _FakeJudge()
@@ -136,3 +142,22 @@ async def test_judge_retries_invalid_output_and_returns_result() -> None:
     assert fake.calls == 2
     assert result is not None
     assert result.should_reply is True
+
+
+@pytest.mark.asyncio
+async def test_judge_failure_degrades_without_trigger() -> None:
+    result = await JudgeEngine(_AlwaysBadJudge()).decide(
+        {"current_message": {"content": "测试"}},
+        weights={
+            "relevance": 0.25,
+            "willingness": 0.2,
+            "social": 0.2,
+            "timing": 0.15,
+            "continuity": 0.2,
+        },
+        threshold=0.6,
+        timeout_seconds=1,
+        max_retries=0,
+        include_reasoning=True,
+    )
+    assert result is None

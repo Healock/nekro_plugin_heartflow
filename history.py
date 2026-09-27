@@ -44,7 +44,10 @@ def merge_current_message(history: Iterable[RawMessage], current: RawMessage, li
 
     if limit <= 0:
         return []
-    return [*list(history), current][-limit:]
+    items = list(history)
+    if not items or items[-1] != current:
+        items.append(current)
+    return items[-limit:]
 
 
 def find_last_bot_reply(history: Iterable[RawMessage]) -> str:

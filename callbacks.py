@@ -100,7 +100,7 @@ def _allowed(message: ChatMessage, settings: HeartflowSettings) -> bool:
         not settings.chat_whitelist or message.chat_key not in settings.chat_whitelist
     ):
         return False
-    if bool(message.is_tome) or _is_command_message(message):
+    if _is_command_message(message):
         return False
     if str(message.sender_id) == "-1" or not (message.content_text or "").strip():
         return False
@@ -127,6 +127,8 @@ async def on_user_message(ctx: AgentCtx, message: ChatMessage) -> MsgSignal | No
             is_tome=bool(message.is_tome),
         )
         runtime.record_message(chat_key, raw_message, settings)
+        if bool(message.is_tome):
+            return None
         if not can_process_message(state, now, settings.min_reply_interval_seconds):
             plugin.logger.debug(f"心流处于冷却中：{chat_key}")
             return None

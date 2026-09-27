@@ -48,6 +48,7 @@ judge 请求只在消息回调期间发起，不在 import 阶段联网。请求
 - Nekro 没有 AstrBot `on_llm_response`，`0.1.0` 只能在触发预留时更新部分状态，主模型失败后的精确回滚和流式最终文本记录尚未实现；
 - judge 使用独立 HTTP 模型配置，不直接使用 AstrBot Provider ID；
 - judge 历史通过 `DBChatMessage` 读取，当前消息直接使用回调参数补入窗口；
+- 当前人格文本使用 Nekro 有效预设并做长度截断，尚未复刻 AstrBot 的人格摘要模型；
 - `CommandPermission.SUPER_USER` 用于替代 AstrBot ADMIN 权限；
 - 插件只处理群聊普通消息，直接 @、唤醒词和命令继续由 Nekro 原生流程处理。
 

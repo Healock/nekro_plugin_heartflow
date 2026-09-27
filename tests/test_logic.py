@@ -15,6 +15,18 @@ if PACKAGE_NAME not in sys.modules:
     package.__path__ = [str(PACKAGE_ROOT)]  # type: ignore[attr-defined]
     sys.modules[PACKAGE_NAME] = package
 
+if "nekro_agent.api.plugin" not in sys.modules:
+    nekro_agent = types.ModuleType("nekro_agent")
+    nekro_agent.__path__ = []  # type: ignore[attr-defined]
+    nekro_api = types.ModuleType("nekro_agent.api")
+    nekro_api.__path__ = []  # type: ignore[attr-defined]
+    nekro_plugin_api = types.ModuleType("nekro_agent.api.plugin")
+    nekro_plugin_api.dynamic_import_pkg = lambda *_args, **_kwargs: None
+    sys.modules["nekro_agent"] = nekro_agent
+    sys.modules["nekro_agent.api"] = nekro_api
+    sys.modules["nekro_agent.api.plugin"] = nekro_plugin_api
+
+from nekro_plugin_heartflow import judge_client  # noqa: E402
 from nekro_plugin_heartflow.history import merge_current_message, render_history  # noqa: E402
 from nekro_plugin_heartflow.judge import JudgeEngine  # noqa: E402
 from nekro_plugin_heartflow.logic import (  # noqa: E402
@@ -30,6 +42,7 @@ from nekro_plugin_heartflow.logic import (  # noqa: E402
 )
 from nekro_plugin_heartflow.models import ChatState, RawMessage  # noqa: E402
 from nekro_plugin_heartflow.settings import load_settings  # noqa: E402
+from nekro_plugin_heartflow.runtime import HeartflowRuntime  # noqa: E402
 
 
 def test_weights_and_json_validation() -> None:
@@ -104,6 +117,34 @@ def test_settings_keep_astrbot_defaults_and_clamp_values() -> None:
     )
     assert custom.reply_threshold == 1.0
     assert custom.weights["relevance"] == pytest.approx(0.25)
+
+
+def test_judge_http_dependency_is_lazy(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_http = object()
+    calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
+
+    def fake_dynamic_import(*args: object, **kwargs: object) -> object:
+        calls.append((args, kwargs))
+        return fake_http
+
+    monkeypatch.setattr(judge_client, "_aiohttp_module", None)
+    monkeypatch.setattr(judge_client, "dynamic_import_pkg", fake_dynamic_import)
+    client = judge_client.JudgeClient("https://example.test/v1", "", "small-model")
+    assert calls == []
+    assert client.is_configured is True
+    assert judge_client._get_aiohttp() is fake_http
+    assert calls == [(("aiohttp>=3.11.15,<4.0.0",), {"import_name": "aiohttp"})]
+
+
+@pytest.mark.asyncio
+async def test_reset_keeps_lock_while_command_holds_it() -> None:
+    runtime = HeartflowRuntime()
+    lock = runtime.lock_for("group-1")
+    async with lock:
+        runtime.reset_chat("group-1")
+        assert runtime.lock_for("group-1") is lock
+    runtime.reset_chat("group-1")
+    assert runtime.lock_for("group-1") is lock
 
 
 class _FakeJudge:

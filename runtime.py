@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import weakref
 from collections import OrderedDict
 from typing import Iterable
 
@@ -16,7 +17,7 @@ class HeartflowRuntime:
 
     def __init__(self) -> None:
         self.states: dict[str, ChatState] = {}
-        self.locks: dict[str, asyncio.Lock] = {}
+        self.locks: weakref.WeakValueDictionary[str, asyncio.Lock] = weakref.WeakValueDictionary()
         self.persona_cache: OrderedDict[str, str] = OrderedDict()
 
     def lock_for(self, chat_key: str) -> asyncio.Lock:
@@ -66,7 +67,6 @@ class HeartflowRuntime:
 
     def reset_chat(self, chat_key: str) -> None:
         self.states.pop(chat_key, None)
-        self.locks.pop(chat_key, None)
 
     def clear_persona_cache(self) -> int:
         count = len(self.persona_cache)
@@ -88,7 +88,6 @@ class HeartflowRuntime:
                 if lock is not None and lock.locked():
                     continue
                 self.states.pop(chat_key, None)
-                self.locks.pop(chat_key, None)
                 break
             else:
                 return

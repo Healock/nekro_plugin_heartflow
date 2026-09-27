@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
-import aiohttp
+from nekro_agent.api.plugin import dynamic_import_pkg
+
+
+_aiohttp_module: Any = None
 
 
 class JudgeClientError(RuntimeError):
@@ -38,6 +42,7 @@ class JudgeClient:
 
         if not self.is_configured:
             raise JudgeNotConfiguredError("judge_api_base_url 和 judge_model 必须同时配置")
+        aiohttp = _get_aiohttp()
         payload = {
             "model": self.model,
             "messages": [
@@ -60,9 +65,23 @@ class JudgeClient:
                         result = json.loads(raw_text)
                     except json.JSONDecodeError as exc:
                         raise JudgeClientError("judge 返回不是 JSON") from exc
+        except JudgeClientError:
+            raise
         except (aiohttp.ClientError, TimeoutError) as exc:
             raise JudgeClientError(f"judge 网络请求失败：{type(exc).__name__}") from exc
         return _extract_completion_text(result)
+
+
+def _get_aiohttp() -> Any:
+    """仅在首次 judge 请求时加载 aiohttp。"""
+
+    global _aiohttp_module
+    if _aiohttp_module is None:
+        try:
+            _aiohttp_module = dynamic_import_pkg("aiohttp>=3.11.15,<4.0.0", import_name="aiohttp")
+        except Exception as exc:
+            raise JudgeClientError(f"加载 judge HTTP 依赖失败：{type(exc).__name__}") from exc
+    return _aiohttp_module
 
 
 def _extract_completion_text(result: object) -> str:

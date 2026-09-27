@@ -8,9 +8,9 @@ from pydantic import Field
 
 try:
     from nekro_agent.api.plugin import ConfigBase, NekroPlugin
-except ModuleNotFoundError as exc:
+except ImportError as exc:
     # 纯逻辑测试不需要安装完整 Nekro；真实插件加载时该依赖必须存在。
-    if exc.name != "nekro_agent" or "pytest" not in sys.modules:
+    if "pytest" not in sys.modules:
         raise
     plugin = None  # type: ignore[assignment]
     config = None  # type: ignore[assignment]
